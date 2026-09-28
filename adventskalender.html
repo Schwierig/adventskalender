@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adventskalender zum Hören</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,600..900,100&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --tanne: #17392B;
+    --tanne-tief: #0E2419;
+    --beere: #A8233A;
+    --gold: #D9A441;
+    --schnee: #EEF3EF;
+    --moos: #3E6B4F;
+    --display: "Fraunces", Georgia, "Times New Roman", serif;
+    --text: "Nunito", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --spalten: 6;
+    --zeilen: 4;
+    --zelle: 100px;
+    --abstand: 8px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: var(--text);
+    color: var(--schnee);
+    background-color: var(--tanne);
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(238,243,239,.10) 1.5px, transparent 2px),
+      radial-gradient(circle at 70% 80%, rgba(238,243,239,.07) 1px, transparent 1.5px);
+    background-size: 90px 90px, 55px 55px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Seite füllt den Einbettungsrahmen komplett */
+  .seite {
+    height: 100vh;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    padding: clamp(8px, 2.2vmin, 22px);
+    gap: clamp(6px, 1.6vmin, 16px);
+  }
+
+  header {
+    flex: none;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+  }
+  h1 {
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 100, "opsz" 144;
+    font-weight: 900;
+    font-size: clamp(1.3rem, 5vmin, 3rem);
+    line-height: 1;
+    margin: 0;
+  }
+  .status { margin: 0; font-weight: 800; color: var(--gold); font-size: clamp(.8rem, 2.2vmin, 1.05rem); }
+
+  .kalender {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: repeat(var(--spalten), 1fr);
+    grid-template-rows: repeat(var(--zeilen), minmax(48px, 1fr));
+    gap: var(--abstand);
+  }
+
+  .tuer {
+    position: relative;
+    border: 0; padding: 0; background: none;
+    cursor: pointer;
+    perspective: 900px;
+    font: inherit; color: inherit;
+    border-radius: 8px;
+    min-width: 0; min-height: 0;
+  }
+  .tuer:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+  .innen {
+    position: absolute; inset: 0;
+    border-radius: 8px;
+    background: var(--tanne-tief);
+    box-shadow: inset 0 3px 12px rgba(0,0,0,.55);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .innen svg { width: calc(var(--zelle) * .5); height: calc(var(--zelle) * .5); }
+
+  .blatt {
+    position: absolute; inset: 0;
+    border-radius: 8px;
+    transform-origin: left center;
+    transition: transform .7s cubic-bezier(.3,.9,.3,1.05);
+    display: flex; align-items: flex-end;
+    padding: calc(var(--zelle) * .06) calc(var(--zelle) * .1);
+    backface-visibility: hidden;
+    border: 2px solid rgba(255,255,255,.14);
+  }
+  .blatt .zahl {
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 100, "opsz" 144;
+    font-weight: 800;
+    font-size: calc(var(--zelle) * .44);
+    line-height: 1;
+  }
+  .farbe-0 .blatt { background: var(--beere); color: var(--schnee); }
+  .farbe-1 .blatt { background: var(--moos); color: var(--schnee); }
+  .farbe-2 .blatt { background: var(--gold); color: var(--tanne-tief); }
+  .farbe-3 .blatt { background: var(--schnee); color: var(--beere); }
+  .tuer.tag24 .blatt .zahl { font-weight: 900; }
+  .tuer.tag24 .blatt::before {
+    content: "★";
+    position: absolute; top: 6%; right: 9%;
+    font-size: calc(var(--zelle) * .22);
+  }
+
+  .tuer.gesperrt .blatt::after {
+    content: "";
+    position: absolute; bottom: 10%; right: 9%;
+    width: calc(var(--zelle) * .09); height: calc(var(--zelle) * .09);
+    min-width: 7px; min-height: 7px;
+    border-radius: 50%;
+    border: 2px solid currentColor; opacity: .45;
+  }
+  .tuer.heute .blatt { box-shadow: 0 0 0 3px var(--gold), 0 0 22px rgba(217,164,65,.55); }
+  .tuer.offen .blatt { transform: rotateY(-108deg); pointer-events: none; }
+
+  footer {
+    flex: none;
+    display: flex; flex-wrap: wrap; gap: 4px 18px;
+    font-size: clamp(.75rem, 1.9vmin, .95rem);
+    opacity: .8;
+  }
+  footer a, footer button {
+    color: inherit; font: inherit; background: none; border: 0; padding: 2px 0;
+    text-decoration: underline; cursor: pointer;
+  }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 14px;
+    transform: translate(-50%, 16px);
+    background: var(--schnee); color: var(--tanne-tief);
+    font-weight: 800; padding: 10px 16px; border-radius: 30px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s, transform .25s;
+    max-width: 92vw; text-align: center;
+    z-index: 30;
+  }
+  .toast.zeigen { opacity: 1; transform: translate(-50%, 0); }
+
+  /* Lied-Fenster: immer mittig im Rahmen */
+  .schleier {
+    position: fixed; inset: 0;
+    background: rgba(14,36,25,.75);
+    display: flex; align-items: center; justify-content: center;
+    padding: 8px;
+    opacity: 0; visibility: hidden;
+    transition: opacity .2s, visibility .2s;
+    z-index: 20;
+  }
+  .schleier.offen { opacity: 1; visibility: visible; }
+  .fenster {
+    width: min(560px, 100%);
+    max-height: 100%;
+    overflow-y: auto;
+    background: var(--schnee); color: var(--tanne-tief);
+    border-radius: 16px;
+    padding: clamp(12px, 3vmin, 22px);
+    box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    border-top: 7px solid var(--beere);
+  }
+  .fenster h2 {
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 100, "opsz" 72;
+    font-weight: 800; font-size: clamp(1.3rem, 4.5vmin, 2rem); margin: 0 0 2px;
+  }
+  .fenster .frage { margin: 0 0 clamp(8px, 2vmin, 16px); }
+
+  .player {
+    position: relative;
+    height: var(--player-hoehe, 152px);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--tanne);
+  }
+  .player iframe {
+    display: block; border: 0;
+    filter: blur(16px) saturate(1.3);
+    transform: scale(1.12);
+    transition: filter .5s, transform .5s;
+  }
+  .player::after {
+    content: "";
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(135deg, rgba(23,57,43,.35) 0 10px, rgba(23,57,43,.15) 10px 20px);
+    transition: opacity .5s;
+  }
+  .player.aufgedeckt iframe { filter: none; transform: none; }
+  .player.aufgedeckt::after { opacity: 0; }
+  .platzhalter {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--schnee); font-weight: 700; text-align: center; padding: 12px;
+  }
+
+  .knoepfe { display: flex; gap: 8px; margin-top: clamp(8px, 2vmin, 16px); flex-wrap: wrap; }
+  .knopf {
+    flex: 1 1 160px;
+    font: inherit; font-weight: 800; font-size: clamp(1rem, 2.8vmin, 1.15rem);
+    min-height: 50px; border-radius: 12px; border: 0;
+    cursor: pointer; padding: 8px 14px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .knopf:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+  .knopf.abspielen { background: var(--tanne); color: var(--schnee); }
+  .knopf.loesung { background: var(--beere); color: var(--schnee); }
+  .knopf:disabled { opacity: .45; cursor: default; }
+  .knopf svg { width: 18px; height: 18px; }
+
+  .hinweis { margin: 8px 0 0; font-size: .92rem; color: var(--moos); font-weight: 700; }
+  .hinweis:empty { display: none; }
+  .hinweis a { color: var(--beere); }
+
+  .antwort {
+    margin-top: 12px; padding: 12px 14px;
+    border-radius: 12px; background: #fff;
+    border: 2px dashed var(--gold);
+    display: none;
+  }
+  .antwort.zeigen { display: block; }
+  .antwort .interpret { font-weight: 800; margin: 0; color: var(--beere); }
+  .antwort .titel {
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 100, "opsz" 72;
+    font-weight: 700; font-size: clamp(1.2rem, 4vmin, 1.7rem); margin: 2px 0 0; line-height: 1.15;
+  }
+  .schliessen {
+    display: block; margin: 10px auto 0;
+    background: none; border: 0; font: inherit; font-weight: 700;
+    color: var(--tanne); text-decoration: underline; cursor: pointer; padding: 8px 12px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .blatt, .toast, .schleier, .player iframe, .player::after { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="seite">
+
+  <header>
+    <h1>Adventskalender zum Hören</h1>
+    <p class="status" id="status"></p>
+  </header>
+
+  <main class="kalender" id="kalender" aria-label="Türchen 1 bis 24"></main>
+
+  <footer>
+    <a href="https://open.spotify.com" target="_blank" rel="noopener">Bei Spotify anmelden (für ganze Lieder)</a>
+    <button type="button" id="zuruecksetzen">Alle Türchen wieder schließen</button>
+  </footer>
+
+  <div class="schleier" id="schleier" aria-hidden="true">
+    <div class="fenster" role="dialog" aria-modal="true" aria-labelledby="fensterTitel">
+      <h2 id="fensterTitel">Türchen 1</h2>
+      <p class="frage">Welches Lied ist das? Rate Interpret und Titel.</p>
+
+      <div class="player" id="player">
+        <div id="spotify-embed"></div>
+        <div class="platzhalter" id="platzhalter">Spotify-Player wird geladen …</div>
+      </div>
+
+      <div class="knoepfe">
+        <button type="button" class="knopf abspielen" id="btnAbspielen">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path id="iconPfad" fill="currentColor" d="M5 3l12 7-12 7z"/></svg>
+          <span id="btnAbspielenText">Lied abspielen</span>
+        </button>
+        <button type="button" class="knopf loesung" id="btnLoesung">Lösung zeigen</button>
+      </div>
+      <p class="hinweis" id="hinweis" aria-live="polite"></p>
+
+      <div class="antwort" id="antwort" aria-live="polite">
+        <p class="interpret" id="antwortInterpret"></p>
+        <p class="titel" id="antwortTitel"></p>
+      </div>
+
+      <button type="button" class="schliessen" id="btnSchliessen">Türchen schließen</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+</div>
+
+<script>
+/* =========================================================
+   HIER DIE LIEDER EINTRAGEN
+   spotify: Link aus Spotify („Teilen“ → „Songlink kopieren“).
+            Reine Track-ID oder spotify:track:… geht auch.
+   ========================================================= */
+const LIEDER = [
+  { tag: 1,  spotify: "https://open.spotify.com/track/6aqlM3kycMrasoz2tleeGo?si=4fa5283e16804c04", interpret: "Sonic Syndicate", titel: "Psychic Suicide" },
+  { tag: 2,  spotify: "", interpret: "", titel: "" },
+  { tag: 3,  spotify: "", interpret: "", titel: "" },
+  { tag: 4,  spotify: "", interpret: "", titel: "" },
+  { tag: 5,  spotify: "", interpret: "", titel: "" },
+  { tag: 6,  spotify: "", interpret: "", titel: "" },
+  { tag: 7,  spotify: "", interpret: "", titel: "" },
+  { tag: 8,  spotify: "", interpret: "", titel: "" },
+  { tag: 9,  spotify: "", interpret: "", titel: "" },
+  { tag: 10, spotify: "", interpret: "", titel: "" },
+  { tag: 11, spotify: "", interpret: "", titel: "" },
+  { tag: 12, spotify: "", interpret: "", titel: "" },
+  { tag: 13, spotify: "", interpret: "", titel: "" },
+  { tag: 14, spotify: "", interpret: "", titel: "" },
+  { tag: 15, spotify: "", interpret: "", titel: "" },
+  { tag: 16, spotify: "", interpret: "", titel: "" },
+  { tag: 17, spotify: "", interpret: "", titel: "" },
+  { tag: 18, spotify: "", interpret: "", titel: "" },
+  { tag: 19, spotify: "", interpret: "", titel: "" },
+  { tag: 20, spotify: "", interpret: "", titel: "" },
+  { tag: 21, spotify: "", interpret: "", titel: "" },
+  { tag: 22, spotify: "", interpret: "", titel: "" },
+  { tag: 23, spotify: "", interpret: "", titel: "" },
+  { tag: 24, spotify: "", interpret: "", titel: "" }
+];
+
+/* true = alle Türchen sofort öffenbar (zum Testen). Vor dem 1.12. wieder auf false! */
+const TESTMODUS = true;
+
+/* ========================================================= */
+const REIHENFOLGE = [7,19,3,24,12,1,16,9,21,5,14,22,2,18,10,6,23,13,4,20,11,17,8,15];
+const FARBEN = [0,1,2,3,1,0,3,2,0,2,1,3,2,0,1,3,0,3,2,1,3,1,0,2];
+const SPEICHER_KEY = "hoer-adventskalender-offen";
+
+const $ = id => document.getElementById(id);
+const heute = new Date();
+const imDezember = heute.getMonth() === 11;
+const heuteTag = heute.getDate();
+const istOeffenbar = tag => TESTMODUS || (imDezember && tag <= heuteTag);
+
+function trackId(eingabe) {
+  if (!eingabe) return null;
+  const s = String(eingabe).trim();
+  const m = s.match(/track[\/:]([A-Za-z0-9]{22})/);
+  if (m) return m[1];
+  return /^[A-Za-z0-9]{22}$/.test(s) ? s : null;
+}
+
+function ladeOffene() {
+  try { return new Set(JSON.parse(localStorage.getItem(SPEICHER_KEY) || "[]")); }
+  catch (e) { return new Set(); }
+}
+function speichereOffene() {
+  try { localStorage.setItem(SPEICHER_KEY, JSON.stringify([...offene])); } catch (e) {}
+}
+let offene = ladeOffene();
+
+function statusText() {
+  if (TESTMODUS) return "Testmodus: alle Türchen offen";
+  if (imDezember && heuteTag <= 24) return "Heute ist Türchen " + heuteTag + " dran";
+  if (imDezember) return "Alle 24 Lieder sind freigeschaltet";
+  const start = new Date(heute.getFullYear(), 11, 1);
+  const tage = Math.round((start - new Date(heute.getFullYear(), heute.getMonth(), heute.getDate())) / 86400000);
+  return tage === 1 ? "Morgen geht das erste Türchen auf" : "Noch " + tage + " Tage bis zum ersten Türchen";
+}
+$("status").textContent = statusText();
+
+/* ---------- Raster an Rahmengröße anpassen ---------- */
+function passeRasterAn() {
+  const k = $("kalender");
+  const W = k.clientWidth, H = k.clientHeight;
+  const abstand = Math.max(5, Math.min(12, Math.round(Math.min(W, H) / 60)));
+  let beste = { s: 6, z: 4, zelle: 0 };
+  [3, 4, 6, 8, 12].forEach(s => {
+    const z = 24 / s;
+    const w = (W - abstand * (s - 1)) / s;
+    const h = (H - abstand * (z - 1)) / z;
+    const zelle = Math.min(w, h);
+    if (zelle > beste.zelle) beste = { s, z, zelle };
+  });
+  const r = document.documentElement.style;
+  r.setProperty("--spalten", beste.s);
+  r.setProperty("--zeilen", beste.z);
+  r.setProperty("--abstand", abstand + "px");
+  r.setProperty("--zelle", Math.max(48, beste.zelle) + "px");
+}
+
+const plattenSVG = '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="#0E2419" stroke="#D9A441" stroke-width="3"/><circle cx="32" cy="32" r="20" fill="none" stroke="#3E6B4F" stroke-width="1.5"/><circle cx="32" cy="32" r="13" fill="none" stroke="#3E6B4F" stroke-width="1.5"/><circle cx="32" cy="32" r="6" fill="#A8233A"/><circle cx="32" cy="32" r="1.8" fill="#EEF3EF"/></svg>';
+
+function baueKalender() {
+  const k = $("kalender");
+  k.innerHTML = "";
+  REIHENFOLGE.forEach((tag, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "tuer farbe-" + FARBEN[i] + " tag" + tag;
+    if (!istOeffenbar(tag)) b.classList.add("gesperrt");
+    if (imDezember && tag === heuteTag && !TESTMODUS) b.classList.add("heute");
+    if (offene.has(tag) && istOeffenbar(tag)) b.classList.add("offen");
+    b.dataset.tag = tag;
+    b.setAttribute("aria-label", "Türchen " + tag + (istOeffenbar(tag) ? "" : ", noch verschlossen"));
+    b.innerHTML = '<span class="innen">' + plattenSVG + '</span><span class="blatt"><span class="zahl">' + tag + '</span></span>';
+    b.addEventListener("click", () => tuerGeklickt(tag, b));
+    k.appendChild(b);
+  });
+}
+
+let toastTimer;
+function toast(text) {
+  const t = $("toast");
+  t.textContent = text;
+  t.classList.add("zeigen");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("zeigen"), 2600);
+}
+
+function tuerGeklickt(tag, el) {
+  if (!istOeffenbar(tag)) {
+    if (imDezember) {
+      const rest = tag - heuteTag;
+      toast("Türchen " + tag + " geht erst in " + rest + (rest === 1 ? " Tag" : " Tagen") + " auf.");
+    } else {
+      toast("Türchen " + tag + " geht am " + tag + ". Dezember auf.");
+    }
+    return;
+  }
+  const warOffen = el.classList.contains("offen");
+  el.classList.add("offen");
+  offene.add(tag); speichereOffene();
+  const warten = (warOffen || matchMedia("(prefers-reduced-motion: reduce)").matches) ? 0 : 550;
+  setTimeout(() => oeffneFenster(tag), warten);
+}
+
+/* ---------- Spotify ---------- */
+let SpotifyAPI = null, controller = null, wartendeUri = null, spielt = false, hinweisTimer;
+
+window.onSpotifyIframeApiReady = function (api) {
+  SpotifyAPI = api;
+  if (wartendeUri) erzeugeController(wartendeUri);
+};
+
+function erzeugeController(uri) {
+  // Kompakter Player (80 px) bei kleinen Rahmen, sonst 152 px
+  const hoehe = window.innerHeight < 520 ? 80 : 152;
+  document.documentElement.style.setProperty("--player-hoehe", hoehe + "px");
+  SpotifyAPI.createController($("spotify-embed"), { uri, width: "100%", height: hoehe }, c => {
+    controller = c;
+    c.addListener("ready", () => { $("platzhalter").style.display = "none"; });
+    c.addListener("playback_update", e => {
+      spielt = !e.data.isPaused;
+      abspielKnopf();
+      if (spielt) { clearTimeout(hinweisTimer); $("hinweis").innerHTML = ""; }
+    });
+  });
+}
+
+function ladeLied(uri) {
+  $("platzhalter").style.display = "flex";
+  $("platzhalter").textContent = "Spotify-Player wird geladen …";
+  if (controller) { controller.loadUri(uri); setTimeout(() => { $("platzhalter").style.display = "none"; }, 600); return; }
+  if (SpotifyAPI) { erzeugeController(uri); return; }
+  wartendeUri = uri;
+}
+
+function abspielKnopf() {
+  $("btnAbspielenText").textContent = spielt ? "Pausieren" : "Lied abspielen";
+  $("iconPfad").setAttribute("d", spielt ? "M5 3h4v14H5zM11 3h4v14h-4z" : "M5 3l12 7-12 7z");
+}
+
+$("btnAbspielen").addEventListener("click", () => {
+  if (!controller) { $("hinweis").textContent = "Der Player lädt noch, einen Moment."; return; }
+  controller.togglePlay();
+  clearTimeout(hinweisTimer);
+  hinweisTimer = setTimeout(() => {
+    if (!spielt) $("hinweis").textContent = "Nichts zu hören? Tippe direkt auf den grünen Kreis im verschwommenen Player.";
+  }, 1800);
+});
+
+setTimeout(() => {
+  if (!SpotifyAPI) $("platzhalter").textContent = "Spotify konnte nicht geladen werden. Internetverbindung prüfen und Seite neu laden.";
+}, 10000);
+
+/* ---------- Fenster ---------- */
+let aktuellerTag = null;
+
+function oeffneFenster(tag) {
+  aktuellerTag = tag;
+  const lied = LIEDER.find(l => l.tag === tag) || {};
+  const id = trackId(lied.spotify);
+
+  $("fensterTitel").textContent = "Türchen " + tag;
+  $("antwort").classList.remove("zeigen");
+  $("player").classList.remove("aufgedeckt");
+  $("antwortInterpret").textContent = lied.interpret || "Interpret fehlt";
+  $("antwortTitel").textContent = lied.titel || "Titel fehlt";
+  $("hinweis").innerHTML = "";
+  spielt = false; abspielKnopf();
+
+  $("btnAbspielen").disabled = !id;
+  $("btnLoesung").disabled = !id;
+  if (id) {
+    ladeLied("spotify:track:" + id);
+  } else {
+    $("platzhalter").style.display = "flex";
+    $("platzhalter").textContent = "Für dieses Türchen ist noch kein Lied hinterlegt.";
+  }
+
+  $("schleier").classList.add("offen");
+  $("schleier").setAttribute("aria-hidden", "false");
+  $("btnAbspielen").focus({ preventScroll: true });
+}
+
+function schliesseFenster() {
+  if (controller && spielt) controller.togglePlay();
+  $("schleier").classList.remove("offen");
+  $("schleier").setAttribute("aria-hidden", "true");
+  const t = document.querySelector('.tuer[data-tag="' + aktuellerTag + '"]');
+  if (t) t.focus({ preventScroll: true });
+}
+
+$("btnLoesung").addEventListener("click", () => {
+  $("antwort").classList.add("zeigen");
+  $("player").classList.add("aufgedeckt");
+});
+$("btnSchliessen").addEventListener("click", schliesseFenster);
+$("schleier").addEventListener("click", e => { if (e.target === $("schleier")) schliesseFenster(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && $("schleier").classList.contains("offen")) schliesseFenster(); });
+
+$("zuruecksetzen").addEventListener("click", () => {
+  offene = new Set(); speichereOffene(); baueKalender();
+  toast("Alle Türchen sind wieder zu.");
+});
+
+baueKalender();
+passeRasterAn();
+window.addEventListener("resize", passeRasterAn);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(passeRasterAn);
+</script>
+<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
+</body>
+</html>
