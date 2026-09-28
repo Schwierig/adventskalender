@@ -180,7 +180,7 @@
     font-variation-settings: "SOFT" 100, "opsz" 72;
     font-weight: 800; font-size: clamp(1.3rem, 4.5vmin, 2rem); margin: 0 0 2px;
   }
-  .fenster .frage { margin: 0 0 clamp(8px, 2vmin, 16px); }
+  .fenster .frage { margin: 0 0 clamp(8px, 2vmin, 16px); font-size: 1.08rem; line-height: 1.45; white-space: pre-line; }
 
   .player {
     position: relative;
@@ -228,6 +228,22 @@
   .hinweis:empty { display: none; }
   .hinweis a { color: var(--beere); }
 
+  .login-hinweis {
+    display: none;
+    margin-top: 12px; padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--tanne); color: var(--schnee);
+  }
+  .login-hinweis.zeigen { display: block; }
+  .login-hinweis p { margin: 0 0 10px; line-height: 1.4; }
+  .login-hinweis .reihe { display: flex; gap: 8px; flex-wrap: wrap; }
+  .login-hinweis a, .login-hinweis button {
+    font: inherit; font-weight: 800; border-radius: 10px; padding: 10px 14px;
+    cursor: pointer; text-decoration: none; border: 0;
+  }
+  .login-hinweis a { background: var(--gold); color: var(--tanne-tief); }
+  .login-hinweis button { background: none; color: var(--schnee); text-decoration: underline; }
+
   .antwort {
     margin-top: 12px; padding: 12px 14px;
     border-radius: 12px; background: #fff;
@@ -270,7 +286,7 @@
   <div class="schleier" id="schleier" aria-hidden="true">
     <div class="fenster" role="dialog" aria-modal="true" aria-labelledby="fensterTitel">
       <h2 id="fensterTitel">Türchen 1</h2>
-      <p class="frage">Welches Lied ist das? Rate Interpret und Titel.</p>
+      <p class="frage" id="frage"></p>
 
       <div class="player" id="player">
         <div id="spotify-embed"></div>
@@ -285,6 +301,14 @@
         <button type="button" class="knopf loesung" id="btnLoesung">Lösung zeigen</button>
       </div>
       <p class="hinweis" id="hinweis" aria-live="polite"></p>
+
+      <div class="login-hinweis" id="loginHinweis" role="alert">
+        <p>Du hörst nur eine 30-Sekunden-Vorschau, weil der Player dich bei Spotify nicht erkennt. Melde dich kurz an und komm dann hierher zurück. Die Seite lädt sich neu und öffnet dieses Türchen wieder.</p>
+        <div class="reihe">
+          <a href="https://open.spotify.com" target="_blank" rel="noopener" id="loginLink">Bei Spotify anmelden</a>
+          <button type="button" id="loginSpaeter">Mit Vorschau weiterraten</button>
+        </div>
+      </div>
 
       <div class="antwort" id="antwort" aria-live="polite">
         <p class="interpret" id="antwortInterpret"></p>
@@ -303,32 +327,34 @@
    HIER DIE LIEDER EINTRAGEN
    spotify: Link aus Spotify („Teilen“ → „Songlink kopieren“).
             Reine Track-ID oder spotify:track:… geht auch.
+   hinweis: Tipp zum Lied, steht über dem Player.
+            Leer lassen = Standardtext „Welches Lied ist das? …“
    ========================================================= */
 const LIEDER = [
-  { tag: 1,  spotify: "https://open.spotify.com/track/6aqlM3kycMrasoz2tleeGo?si=4fa5283e16804c04", interpret: "Sonic Syndicate", titel: "Psychic Suicide" },
-  { tag: 2,  spotify: "", interpret: "", titel: "" },
-  { tag: 3,  spotify: "", interpret: "", titel: "" },
-  { tag: 4,  spotify: "", interpret: "", titel: "" },
-  { tag: 5,  spotify: "", interpret: "", titel: "" },
-  { tag: 6,  spotify: "", interpret: "", titel: "" },
-  { tag: 7,  spotify: "", interpret: "", titel: "" },
-  { tag: 8,  spotify: "", interpret: "", titel: "" },
-  { tag: 9,  spotify: "", interpret: "", titel: "" },
-  { tag: 10, spotify: "", interpret: "", titel: "" },
-  { tag: 11, spotify: "", interpret: "", titel: "" },
-  { tag: 12, spotify: "", interpret: "", titel: "" },
-  { tag: 13, spotify: "", interpret: "", titel: "" },
-  { tag: 14, spotify: "", interpret: "", titel: "" },
-  { tag: 15, spotify: "", interpret: "", titel: "" },
-  { tag: 16, spotify: "", interpret: "", titel: "" },
-  { tag: 17, spotify: "", interpret: "", titel: "" },
-  { tag: 18, spotify: "", interpret: "", titel: "" },
-  { tag: 19, spotify: "", interpret: "", titel: "" },
-  { tag: 20, spotify: "", interpret: "", titel: "" },
-  { tag: 21, spotify: "", interpret: "", titel: "" },
-  { tag: 22, spotify: "", interpret: "", titel: "" },
-  { tag: 23, spotify: "", interpret: "", titel: "" },
-  { tag: 24, spotify: "", interpret: "", titel: "" }
+  { tag: 1,  spotify: "https://open.spotify.com/track/6aqlM3kycMrasoz2tleeGo?si=4fa5283e16804c04", interpret: "Sonic Syndicate", titel: "Psychic Suicide", hinweis: "Das ist Metal!" },
+  { tag: 2,  spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 3,  spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 4,  spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 5,  spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 6,  spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 7,  spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 8,  spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 9,  spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 10, spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 11, spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 12, spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 13, spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 14, spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 15, spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 16, spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 17, spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 18, spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 19, spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 20, spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 21, spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 22, spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 23, spotify: "", interpret: "", titel: "", hinweis: "" },
+  { tag: 24, spotify: "", interpret: "", titel: "", hinweis: "" }
 ];
 
 /* true = alle Türchen sofort öffenbar (zum Testen). Vor dem 1.12. wieder auf false! */
@@ -457,6 +483,7 @@ function erzeugeController(uri) {
       spielt = !e.data.isPaused;
       abspielKnopf();
       if (spielt) { clearTimeout(hinweisTimer); $("hinweis").innerHTML = ""; }
+      pruefeVorschau(e.data.duration);
     });
   });
 }
@@ -487,6 +514,37 @@ setTimeout(() => {
   if (!SpotifyAPI) $("platzhalter").textContent = "Spotify konnte nicht geladen werden. Internetverbindung prüfen und Seite neu laden.";
 }, 10000);
 
+/* ---------- Login-Erkennung ----------
+   Ohne Spotify-Login liefert der Player nur ~30 s Vorschau.
+   Meldet die API eine Länge unter 31 s, gilt der Nutzer als nicht angemeldet. */
+const VORSCHAU_GRENZE_MS = 31000;
+let vorschauIgnoriert = false, wartetAufLogin = false;
+
+function session(key, wert) {
+  try {
+    if (wert === undefined) return sessionStorage.getItem(key);
+    if (wert === null) sessionStorage.removeItem(key); else sessionStorage.setItem(key, wert);
+  } catch (e) { return null; }
+}
+
+function pruefeVorschau(dauer) {
+  if (!dauer || vorschauIgnoriert) return;
+  $("loginHinweis").classList.toggle("zeigen", dauer < VORSCHAU_GRENZE_MS);
+}
+
+$("loginLink").addEventListener("click", () => {
+  wartetAufLogin = true;
+  session("kalender-nach-login", String(aktuellerTag));
+});
+$("loginSpaeter").addEventListener("click", () => {
+  vorschauIgnoriert = true;
+  $("loginHinweis").classList.remove("zeigen");
+});
+// Zurück aus dem Spotify-Tab: neu laden, damit der Player den Login übernimmt
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && wartetAufLogin) location.reload();
+});
+
 /* ---------- Fenster ---------- */
 let aktuellerTag = null;
 
@@ -496,11 +554,13 @@ function oeffneFenster(tag) {
   const id = trackId(lied.spotify);
 
   $("fensterTitel").textContent = "Türchen " + tag;
+  $("frage").textContent = (lied.hinweis && lied.hinweis.trim()) || "Welches Lied ist das? Rate Interpret und Titel.";
   $("antwort").classList.remove("zeigen");
   $("player").classList.remove("aufgedeckt");
   $("antwortInterpret").textContent = lied.interpret || "Interpret fehlt";
   $("antwortTitel").textContent = lied.titel || "Titel fehlt";
   $("hinweis").innerHTML = "";
+  $("loginHinweis").classList.remove("zeigen");
   spielt = false; abspielKnopf();
 
   $("btnAbspielen").disabled = !id;
@@ -542,6 +602,12 @@ baueKalender();
 passeRasterAn();
 window.addEventListener("resize", passeRasterAn);
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(passeRasterAn);
+
+const nachLogin = parseInt(session("kalender-nach-login"), 10);
+if (nachLogin && istOeffenbar(nachLogin)) {
+  session("kalender-nach-login", null);
+  oeffneFenster(nachLogin);
+}
 </script>
 <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 </body>
