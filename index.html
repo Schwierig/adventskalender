@@ -199,6 +199,26 @@
   .knopf:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
   .knopf svg { width: 20px; height: 20px; flex: none; }
   .knopf.leer { background: #c9d3cc; color: var(--tanne); cursor: default; }
+  .knopf.zweit {
+    margin-top: 10px;
+    background: none; color: var(--beere);
+    border: 2px solid var(--beere);
+  }
+  .knopf.zweit[hidden] { display: none; }
+  .loesung {
+    margin-top: 12px; padding: 14px 16px;
+    border-radius: 12px; background: #fff;
+    border: 2px dashed var(--gold);
+    text-align: center;
+  }
+  .loesung[hidden] { display: none; }
+  .loesung .interpret { margin: 0; font-weight: 800; color: var(--beere); }
+  .loesung .titel {
+    margin: 2px 0 0;
+    font-family: var(--display);
+    font-variation-settings: "SOFT" 100, "opsz" 72;
+    font-weight: 700; font-size: clamp(1.3rem, 4vmin, 1.8rem); line-height: 1.2;
+  }
   .schliessen {
     display: block; margin: 12px auto 0;
     background: none; border: 0; font: inherit; font-weight: 700;
@@ -232,6 +252,11 @@
         <svg viewBox="0 0 20 20" aria-hidden="true"><path fill="currentColor" d="M5 3l12 7-12 7z"/></svg>
         <span id="btnText">Lied in Spotify abspielen</span>
       </a>
+      <button type="button" class="knopf zweit" id="btnLoesung">Lösung anzeigen</button>
+      <div class="loesung" id="loesung" hidden aria-live="polite">
+        <p class="interpret" id="loesungInterpret"></p>
+        <p class="titel" id="loesungTitel"></p>
+      </div>
       <button type="button" class="schliessen" id="btnSchliessen">Türchen schließen</button>
     </div>
   </div>
@@ -245,6 +270,7 @@
    spotify: Link aus Spotify („Teilen“ → „Songlink kopieren“).
             Reine Track-ID oder spotify:track:… geht auch.
    hinweis: Das Rätsel zum Lied. Mit \n erzwingst du einen Zeilenumbruch.
+   interpret/titel: Lösung, erscheint nach „Lösung anzeigen“.
    ========================================================= */
 const LIEDER = [
   { tag: 1, spotify: "https://open.spotify.com/track/1Rm9HY2oV8hRECzb8FypF0", interpret: "Allman Brothers Band", titel: "Ramblin' Man",
@@ -428,6 +454,13 @@ function oeffneFenster(tag) {
     $("btnText").textContent = "Für dieses Türchen ist noch kein Lied hinterlegt";
   }
 
+  // Lösung zurücksetzen; Knopf nur zeigen, wenn Interpret oder Titel gepflegt sind
+  const hatLoesung = !!((lied.interpret || "").trim() || (lied.titel || "").trim());
+  $("loesungInterpret").textContent = (lied.interpret || "").trim();
+  $("loesungTitel").textContent = (lied.titel || "").trim();
+  $("loesung").hidden = true;
+  $("btnLoesung").hidden = !hatLoesung;
+
   $("schleier").classList.add("offen");
   $("schleier").setAttribute("aria-hidden", "false");
   $("btnSchliessen").focus({ preventScroll: true });
@@ -440,6 +473,10 @@ function schliesseFenster() {
   if (t) t.focus({ preventScroll: true });
 }
 
+$("btnLoesung").addEventListener("click", () => {
+  $("loesung").hidden = false;
+  $("btnLoesung").hidden = true;
+});
 $("btnSchliessen").addEventListener("click", schliesseFenster);
 $("schleier").addEventListener("click", e => { if (e.target === $("schleier")) schliesseFenster(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && $("schleier").classList.contains("offen")) schliesseFenster(); });
